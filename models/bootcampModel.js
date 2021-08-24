@@ -5,6 +5,11 @@ const geocoder = require("../utils/geocoder");
 
 const BootcampSchema = new mongoose.Schema(
   {
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "user",
+      required: true,
+    },
     name: {
       type: String,
       required: [true, "Please add name of bootcamp"],
@@ -94,7 +99,7 @@ const BootcampSchema = new mongoose.Schema(
       default: false,
     },
   },
-  { timestamps: true }
+  { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } }
 );
 
 // Creating Bootcamp slug from the name
@@ -121,6 +126,20 @@ BootcampSchema.pre("save", async function (next) {
   // Dont saving address in database
   this.address = undefined;
   next();
+});
+
+// Cascade delete courses when bootcamp is deleted
+BootcampSchema.pre("remove", async function (next) {
+  await this.model("course").deleteMany({ bootcamp: this._id });
+  next();
+});
+
+// Reverse populate with vituals
+BootcampSchema.virtual("courses", {
+  ref: "course",
+  localField: "_id",
+  foreignField: "bootcamp",
+  justOne: false,
 });
 
 const BootcampModel = new mongoose.model("bootcamp", BootcampSchema);
