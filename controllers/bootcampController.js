@@ -2,81 +2,13 @@ const asyncHandler = require("../middlewares/asyncHandler");
 const BootcampModel = require("../models/bootcampModel");
 const ErrorResponse = require("../utils/errorResponse");
 const geocoder = require("../utils/geocoder");
+const path = require("path");
 
 // @desc    Get all bootcamps
 // @route   GET /api/v1/bootcamp
 // @access  Public
 const getAllBootcamp = asyncHandler(async (req, res, next) => {
-  let query;
-
-  // Copy req.query
-  const reqQuery = { ...req.query };
-
-  // Field to exclude
-  const removeFields = ["select", "sort", "limit", "page"];
-
-  // Loop over and remove field and delete them from reqQuery
-  removeFields.forEach(field => {
-    delete reqQuery[field];
-  });
-
-  // Create query String
-  let queryStr = JSON.stringify(reqQuery);
-
-  // Create operaters like (gt,gte, etc)
-  queryStr = queryStr.replace(/\b(gt|gte|lt|lte|in)\b/g, match => `$${match}`);
-
-  // Finding Resource
-  query = BootcampModel.find(JSON.parse(queryStr));
-
-  // Select Fields
-  if (req.query.select) {
-    const selectFields = req.query.select.split(",").join(" ");
-    query = query.select(selectFields);
-  }
-
-  // Sort Fields
-  if (req.query.sort) {
-    const sortFields = req.query.sort.split(",").join(" ");
-    query = query.sort(sortFields);
-  } else {
-    query = query.sort("-createdAt");
-  }
-
-  const page = +req.query.page || 1;
-  const limit = +req.query.limit || 10;
-  const startIndex = (page - 1) * limit;
-  const endIndex = page * limit;
-  const total = await BootcampModel.countDocuments();
-
-  query = query.skip(startIndex).limit(limit);
-
-  // Executing query
-  const bootcamps = await query;
-
-  // Pagination Result
-  const pagination = {};
-
-  if (endIndex < total) {
-    pagination.next = {
-      page: page + 1,
-      limit,
-    };
-  }
-
-  if (startIndex > 0) {
-    pagination.prev = {
-      page: page - 1,
-      limit,
-    };
-  }
-
-  res.status(200).json({
-    success: true,
-    count: bootcamps.length,
-    pagination,
-    data: bootcamps,
-  });
+  res.status(200).json(res.advancedFiltering);
 });
 
 // @desc    Get single bootcamps
@@ -99,7 +31,13 @@ const getBootcamp = asyncHandler(async (req, res, next) => {
 //@route    POST /api/v1/bootcamp
 //@access   Private
 const createBootcamp = asyncHandler(async (req, res, next) => {
-  const bootcamp = await BootcampModel.create(req.body);
+  const available = await BootcampModel.findOne({ user: req.user });
+
+  if (available && req.role !== "admin") {
+    return next(new ErrorResponse("You cannot create bootcamp twice"));
+  }
+
+  const bootcamp = await BootcampModel.create({ user: req.user, ...req.body });
 
   res.status(201).json({
     success: true,
@@ -111,18 +49,25 @@ const createBootcamp = asyncHandler(async (req, res, next) => {
 //@route    PUT /api/v1/bootcamp/:id
 //@access   Private
 const updateBootcamp = asyncHandler(async (req, res, next) => {
-  const bootcamp = await BootcampModel.findByIdAndUpdate(
-    req.params.id,
-    req.body,
-    {
-      new: true,
-      runValidators: true,
-    }
-  );
+  let bootcamp = await BootcampModel.findById(req.params.id).select("user");
 
   if (!bootcamp) {
     next(new ErrorResponse("Bootcamp not found", 404));
   }
+
+  if (bootcamp.user.toString() !== req.user && req.role !== "admin") {
+    return next(
+      new ErrorResponse(
+        `${req.user} is not authorized to update this bootcamp`,
+        401
+      )
+    );
+  }
+
+  bootcamp = await BootcampModel.findByIdAndUpdate(bootcamp._id, req.body, {
+    new: true,
+    runValidators: true,
+  });
 
   res.status(200).json({
     success: true,
@@ -134,13 +79,22 @@ const updateBootcamp = asyncHandler(async (req, res, next) => {
 //@route    DELETE /api/v1/bootcamp/:id
 //@access   Private
 const deleteBootcamp = asyncHandler(async (req, res, next) => {
-  const bootcamp = await BootcampModel.findById(req.params.id);
+  const bootcamp = await BootcampModel.findById(req.params.id).select("user");
 
   if (!bootcamp) {
     next(new ErrorResponse("Bootcamp not found", 404));
   }
 
-  await BootcampModel.findByIdAndDelete(bootcamp._id);
+  if (bootcamp.user.toString() !== req.user && req.role !== "admin") {
+    return next(
+      new ErrorResponse(
+        `${req.user} is not authorized to delete this bootcamp`,
+        401
+      )
+    );
+  }
+
+  await bootcamp.remove();
 
   res.status(200).json({
     success: true,
@@ -178,6 +132,59 @@ const getBootcampWithinDistance = asyncHandler(async (req, res, next) => {
   });
 });
 
+//@desc     Uploading the photo of the bootcamp
+//@route    POST /api/v1/bootcamp/:id/photo
+//@access   Private
+const uploadPhoto = asyncHandler(async (req, res, next) => {
+  const bootcamp = await BootcampModel.findById(req.params.id).select("user");
+  if (!bootcamp) {
+    return next(
+      new ErrorResponse(`Bootcamp with id ${req.params.id} not found`, 404)
+    );
+  }
+  if (bootcamp.user.toString() !== req.user && req.role !== "admin") {
+    return next(
+      new ErrorResponse(
+        `${req.user} is not authorized to update this bootcamp`,
+        401
+      )
+    );
+  }
+
+  if (!req.files) {
+    return next(new ErrorResponse("Please upload a file", 400));
+  }
+
+  const file = Object.values(req.files)[0];
+  const allowedTypes = ["image/jpeg", "image/png", "image/jpg"];
+
+  if (!allowedTypes.includes(file.mimetype)) {
+    return next(new ErrorResponse("Please upload only jpeg,png,jpg images"));
+  }
+
+  const fileName = `${Date.now()}${path.extname(file.name)}`;
+  const uploadPath = path.resolve() + "/uploads/" + fileName;
+
+  file.mv(uploadPath, err => {
+    if (err) {
+      return next(err.message, 403);
+    }
+  });
+
+  const updateWithPhoto = await BootcampModel.findByIdAndUpdate(
+    bootcamp._id,
+    {
+      photo: fileName,
+    },
+    { new: true, runValidators: true }
+  );
+
+  res.status(200).json({
+    success: true,
+    data: updateWithPhoto,
+  });
+});
+
 module.exports = {
   getAllBootcamp,
   createBootcamp,
@@ -185,4 +192,5 @@ module.exports = {
   updateBootcamp,
   deleteBootcamp,
   getBootcampWithinDistance,
+  uploadPhoto,
 };

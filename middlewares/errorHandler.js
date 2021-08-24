@@ -1,6 +1,6 @@
 const errorHandler = (err, req, res, next) => {
   // !Error in console
-  console.log(err.stack.red);
+  console.log(err);
 
   // !Mongoose Unique Key Error
   if (err.code === 11000) {
@@ -32,7 +32,7 @@ const errorHandler = (err, req, res, next) => {
 const notFound = (req, res, next) => {
   res.status(400).json({
     success: false,
-    message: "Given address is not available",
+    error: "Given address is not available",
   });
 };
 
