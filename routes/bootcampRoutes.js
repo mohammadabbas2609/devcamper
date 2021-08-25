@@ -15,8 +15,10 @@ const BootcampModel = require("../models/bootcampModel");
 const protectedRoute = require("../middlewares/protectedRoute");
 const restrictAccess = require("../middlewares/restrictAccess");
 const courseRouter = require("./courseRoutes");
+const reviewRouter = require("./reviewRoutes");
 // Reroute into other resource router
 router.use("/:bootcampId/course", courseRouter);
+router.use("/:bootcampId/reviews", reviewRouter);
 
 router
   .route("/")
