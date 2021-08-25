@@ -69,7 +69,6 @@ app.use(cookie());
 
 // Setting up routes
 app.get("/", (req, res, next) => {
-  console.log(__dirname + "public");
   res.sendFile(__dirname + "/public/index.html");
 });
 app.use("/api/v1/bootcamp", bootcampRoute);
