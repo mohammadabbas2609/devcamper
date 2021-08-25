@@ -8,6 +8,7 @@ const bootcampRoute = require("./routes/bootcampRoutes");
 const courseRoute = require("./routes/courseRoutes");
 const userRoute = require("./routes/userRoutes");
 const adminRoute = require("./routes/adminRoutes");
+const reviewRoute = require("./routes/reviewRoutes.js");
 const { errorHandler, notFound } = require("./middlewares/errorHandler");
 
 // Loading dotenv
@@ -42,6 +43,7 @@ app.use("/api/v1/bootcamp", bootcampRoute);
 app.use("/api/v1/course", courseRoute);
 app.use("/api/v1/user", userRoute);
 app.use("/api/v1/admin", adminRoute);
+app.use("/api/v1/reviews", reviewRoute);
 
 app.use(notFound);
 app.use(errorHandler);
