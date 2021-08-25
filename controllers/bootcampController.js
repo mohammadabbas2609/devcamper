@@ -163,7 +163,7 @@ const uploadPhoto = asyncHandler(async (req, res, next) => {
   }
 
   const fileName = `${Date.now()}${path.extname(file.name)}`;
-  const uploadPath = path.resolve() + "/uploads/" + fileName;
+  const uploadPath = path.resolve() + "/public/uploads/" + fileName;
 
   file.mv(uploadPath, err => {
     if (err) {
