@@ -9,6 +9,7 @@ const xss = require("xss-clean");
 const rateLimit = require("express-rate-limit");
 const hpp = require("hpp");
 const cors = require("cors");
+const path = require("path");
 const connectDB = require("./config/db");
 const bootcampRoute = require("./routes/bootcampRoutes");
 const courseRoute = require("./routes/courseRoutes");
@@ -16,7 +17,6 @@ const userRoute = require("./routes/userRoutes");
 const adminRoute = require("./routes/adminRoutes");
 const reviewRoute = require("./routes/reviewRoutes.js");
 const { errorHandler, notFound } = require("./middlewares/errorHandler");
-
 // Loading dotenv
 require("dotenv").config({});
 const app = express();
@@ -68,6 +68,10 @@ app.use(
 app.use(cookie());
 
 // Setting up routes
+app.get("/", (req, res, next) => {
+  console.log(__dirname + "public");
+  res.sendFile(__dirname + "/public/index.html");
+});
 app.use("/api/v1/bootcamp", bootcampRoute);
 app.use("/api/v1/course", courseRoute);
 app.use("/api/v1/user", userRoute);
