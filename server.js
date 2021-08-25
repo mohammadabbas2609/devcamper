@@ -3,6 +3,12 @@ const colors = require("colors");
 const morgan = require("morgan");
 const fileUpload = require("express-fileupload");
 const cookie = require("cookie-parser");
+const mongoSanitize = require("express-mongo-sanitize");
+const helmet = require("helmet");
+const xss = require("xss-clean");
+const rateLimit = require("express-rate-limit");
+const hpp = require("hpp");
+const cors = require("cors");
 const connectDB = require("./config/db");
 const bootcampRoute = require("./routes/bootcampRoutes");
 const courseRoute = require("./routes/courseRoutes");
@@ -22,6 +28,29 @@ app.use(express.json());
 if (process.env.NODE_ENV === "development") {
   app.use(morgan("dev"));
 }
+
+// applying CORS
+app.use(cors());
+
+// Sanitizing Mongo Operators
+app.use(mongoSanitize());
+
+// Applying Security Headers
+app.use(helmet());
+
+// Preventing Cross-Site Scripting
+app.use(xss());
+
+// Rate Limiting the API
+const limiter = rateLimit({
+  windowMs: 60 * 60 * 1000, //60 Minutes
+  max: 150,
+});
+
+app.use(limiter);
+
+// Prevent HTTP parameters pollution
+app.use(hpp());
 
 // Using express file upload for uploading images
 app.use(
