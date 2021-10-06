@@ -19,7 +19,7 @@
   * Prevent No-SQL injection by sanitizing the incoming requests
   * HTTP parameter pollution prevented
   * More security headers added with each response
-##Limitation
+## Limitation
  * Publisher can have only one bootcamp
  * Publisher cant review any bootcamp including which they own.
 
@@ -32,7 +32,7 @@
 * JSON-WEB_TOKEN (For Authorization)
 * Express-fileupload (Handling file uploads)
 * Nodemailer (Handling emails)
-* * Various Security Packages to Make API Secure *
+* \n* Various Security Packages to Make API Secure \n*
   
 ---
 ## Enviroment Variables
