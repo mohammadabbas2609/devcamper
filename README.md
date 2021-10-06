@@ -55,6 +55,13 @@ SMTP_PASS=*user password*
 FROM_EMAIL=*Your email*
 FROM_NAME=*Your Name*
 ```
+## Run and Build
+```bash
+*Starts the server on PORT 5000 with nodemon*
+npm run dev
+*Starts the server with node on PORT 5000*
+npm run start
+```
 
 Extensive documentation for the API  is [here](https://documenter.getpostman.com/view/14581553/TzzEpFKW)
 
