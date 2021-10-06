@@ -32,7 +32,7 @@
 * JSON-WEB_TOKEN (For Authorization)
 * Express-fileupload (Handling file uploads)
 * Nodemailer (Handling emails)
-* \n* Various Security Packages to Make API Secure \n*
+* \* Various Security Packages to Make API Secure \*
   
 ---
 ## Enviroment Variables
